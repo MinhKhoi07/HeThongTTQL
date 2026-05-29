@@ -137,7 +137,8 @@ CREATE TABLE `san_pham` (
   `gia_nhap` decimal(15,2) NOT NULL,
   `gia_ban` decimal(15,2) NOT NULL,
   `ton_toi_thieu` int(11) DEFAULT 5,
-  `han_su_dung` date DEFAULT NULL
+  `han_su_dung` date DEFAULT NULL,
+  `hinh_anh` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_vietnamese_ci;
 
 --

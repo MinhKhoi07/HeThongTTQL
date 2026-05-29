@@ -20,11 +20,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_product'])) {
     $don_vi_tinh = $_POST['don_vi_tinh'];
     $gia_nhap = $_POST['gia_nhap'];
     $gia_ban = $_POST['gia_ban'];
+    
+    // Xử lý upload hình ảnh
+    $hinh_anh = '';
+    if (isset($_FILES['hinh_anh']) && $_FILES['hinh_anh']['error'] == 0) {
+        $target_dir = "assets/images/products/";
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+        
+        $file_extension = strtolower(pathinfo($_FILES['hinh_anh']['name'], PATHINFO_EXTENSION));
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        
+        if (in_array($file_extension, $allowed_extensions)) {
+            $new_filename = uniqid() . '_' . time() . '.' . $file_extension;
+            $target_file = $target_dir . $new_filename;
+            
+            if (move_uploaded_file($_FILES['hinh_anh']['tmp_name'], $target_file)) {
+                $hinh_anh = $target_file;
+            }
+        }
+    }
 
     if ($id) {
-        $sql = "UPDATE san_pham SET id_danh_muc='$id_danh_muc', ma_vach='$ma_vach', ma_sku='$ma_sku', ten_san_pham='$ten_san_pham', don_vi_tinh='$don_vi_tinh', gia_nhap='$gia_nhap', gia_ban='$gia_ban' WHERE id=$id";
+        if ($hinh_anh) {
+            $sql = "UPDATE san_pham SET id_danh_muc='$id_danh_muc', ma_vach='$ma_vach', ma_sku='$ma_sku', ten_san_pham='$ten_san_pham', don_vi_tinh='$don_vi_tinh', gia_nhap='$gia_nhap', gia_ban='$gia_ban', hinh_anh='$hinh_anh' WHERE id=$id";
+        } else {
+            $sql = "UPDATE san_pham SET id_danh_muc='$id_danh_muc', ma_vach='$ma_vach', ma_sku='$ma_sku', ten_san_pham='$ten_san_pham', don_vi_tinh='$don_vi_tinh', gia_nhap='$gia_nhap', gia_ban='$gia_ban' WHERE id=$id";
+        }
     } else {
-        $sql = "INSERT INTO san_pham (id_danh_muc, ma_vach, ma_sku, ten_san_pham, don_vi_tinh, gia_nhap, gia_ban) VALUES ('$id_danh_muc', '$ma_vach', '$ma_sku', '$ten_san_pham', '$don_vi_tinh', '$gia_nhap', '$gia_ban')";
+        $sql = "INSERT INTO san_pham (id_danh_muc, ma_vach, ma_sku, ten_san_pham, don_vi_tinh, gia_nhap, gia_ban, hinh_anh) VALUES ('$id_danh_muc', '$ma_vach', '$ma_sku', '$ten_san_pham', '$don_vi_tinh', '$gia_nhap', '$gia_ban', '$hinh_anh')";
     }
     $conn->query($sql);
     header("Location: products.php");
@@ -112,9 +137,13 @@ include 'includes/header.php';
                 <?php while ($row = $result->fetch_assoc()): ?>
                 <tr>
                     <td>
-                        <div class="bg-light rounded d-flex align-items-center justify-content-center text-muted border" style="width: 40px; height: 40px;">
-                            <i class="fas fa-box"></i>
-                        </div>
+                        <?php if ($row['hinh_anh'] && file_exists($row['hinh_anh'])): ?>
+                            <img src="<?= $row['hinh_anh'] ?>" alt="<?= $row['ten_san_pham'] ?>" class="rounded" style="width: 40px; height: 40px; object-fit: cover;">
+                        <?php else: ?>
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center text-muted border" style="width: 40px; height: 40px;">
+                                <i class="fas fa-box"></i>
+                            </div>
+                        <?php endif; ?>
                     </td>
                     <td>
                         <div class="fw-bold"><?= $row['ma_sku'] ?></div>
@@ -132,7 +161,7 @@ include 'includes/header.php';
                     </td>
                     <td>
                         <!-- Gọi modal sửa bằng JS (truyền đủ tham số) -->
-                        <button class="action-btn" onclick="editProduct(<?= $row['id'] ?>, <?= $row['id_danh_muc'] ?>, '<?= htmlspecialchars($row['ma_vach'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ma_sku'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ten_san_pham'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['don_vi_tinh'], ENT_QUOTES) ?>', <?= $row['gia_nhap'] ?>, <?= $row['gia_ban'] ?>)">
+                        <button class="action-btn" onclick="editProduct(<?= $row['id'] ?>, <?= $row['id_danh_muc'] ?>, '<?= htmlspecialchars($row['ma_vach'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ma_sku'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ten_san_pham'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['don_vi_tinh'], ENT_QUOTES) ?>', <?= $row['gia_nhap'] ?>, <?= $row['gia_ban'] ?>, '<?= htmlspecialchars($row['hinh_anh'] ?? '', ENT_QUOTES) ?>')">
                             <i class="far fa-edit"></i>
                         </button>
                         <a href="products.php?delete=<?= $row['id'] ?>" class="action-btn text-decoration-none" onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này?');">
@@ -157,7 +186,7 @@ include 'includes/header.php';
 <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <form action="" method="POST">
+      <form action="" method="POST" enctype="multipart/form-data">
           <div class="modal-header">
             <h5 class="modal-title fw-bold" id="productModalLabel">Thêm sản phẩm mới</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -166,6 +195,16 @@ include 'includes/header.php';
             <input type="hidden" name="save_product" value="1">
             <input type="hidden" name="id" id="prod_id" value="">
             
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Hình ảnh sản phẩm</label>
+                    <input type="file" name="hinh_anh" id="prod_hinh" class="form-control" accept="image/*" onchange="previewImage(event)">
+                    <div class="mt-2" id="image_preview_container" style="display: none;">
+                        <img id="image_preview" src="" alt="Preview" class="rounded border" style="max-width: 200px; max-height: 200px; object-fit: cover;">
+                    </div>
+                </div>
+            </div>
+
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Tên sản phẩm</label>
@@ -219,6 +258,18 @@ include 'includes/header.php';
 </div>
 
 <script>
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('image_preview').src = e.target.result;
+            document.getElementById('image_preview_container').style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
 function resetForm() {
     document.getElementById('productModalLabel').innerText = 'Thêm sản phẩm mới';
     document.getElementById('prod_id').value = '';
@@ -229,9 +280,11 @@ function resetForm() {
     document.getElementById('prod_dvt').value = '';
     document.getElementById('prod_gianhap').value = '0';
     document.getElementById('prod_giaban').value = '0';
+    document.getElementById('prod_hinh').value = '';
+    document.getElementById('image_preview_container').style.display = 'none';
 }
 
-function editProduct(id, id_danh_muc, ma_vach, ma_sku, ten, dvt, gia_nhap, gia_ban) {
+function editProduct(id, id_danh_muc, ma_vach, ma_sku, ten, dvt, gia_nhap, gia_ban, hinh_anh) {
     document.getElementById('productModalLabel').innerText = 'Sửa sản phẩm';
     document.getElementById('prod_id').value = id;
     document.getElementById('prod_ten').value = ten;
@@ -241,6 +294,13 @@ function editProduct(id, id_danh_muc, ma_vach, ma_sku, ten, dvt, gia_nhap, gia_b
     document.getElementById('prod_dvt').value = dvt;
     document.getElementById('prod_gianhap').value = gia_nhap;
     document.getElementById('prod_giaban').value = gia_ban;
+    
+    if (hinh_anh) {
+        document.getElementById('image_preview').src = hinh_anh;
+        document.getElementById('image_preview_container').style.display = 'block';
+    } else {
+        document.getElementById('image_preview_container').style.display = 'none';
+    }
     
     var myModal = new bootstrap.Modal(document.getElementById('productModal'));
     myModal.show();
