@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Nếu chưa đăng nhập thì chuyển hướng ra trang login
 if (!isset($_SESSION['user_id'])) {
@@ -8,6 +10,23 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $currentPage = basename($_SERVER['PHP_SELF']);
+
+// Kiểm tra quyền (Chỉ Quản trị viên mới thấy tất cả, nhân viên bị giấu bớt menu)
+$role = $_SESSION['vai_tro'] ?? 'nhanvien';
+$isAdmin = ($role === 'Quản trị viên' || $role === 'admin');
+
+// Đếm thông báo (Cảnh báo tồn kho & hết hạn)
+include_once __DIR__ . '/../connect.php';
+$alert_count = 0;
+// 1. SP dưới mức tồn tối thiểu
+$sql_low_stock = "SELECT COUNT(*) as total FROM (SELECT sp.id FROM san_pham sp LEFT JOIN ton_kho tk ON sp.id = tk.id_san_pham GROUP BY sp.id HAVING IFNULL(SUM(tk.so_luong), 0) <= MAX(sp.ton_toi_thieu)) as temp";
+$result_low = $conn->query($sql_low_stock);
+if ($result_low) $alert_count += $result_low->fetch_assoc()['total'];
+
+// 2. SP sắp hết hạn hoặc đã hết hạn (trong vòng 30 ngày)
+$sql_exp = "SELECT COUNT(*) as total FROM san_pham WHERE han_su_dung IS NOT NULL AND han_su_dung <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)";
+$result_exp = $conn->query($sql_exp);
+if ($result_exp) $alert_count += $result_exp->fetch_assoc()['total'];
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -29,27 +48,42 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <div class="brand">
             <i class="fas fa-store text-success"></i> Thanh Hậu
         </div>
+        
+        <?php if ($isAdmin): ?>
         <a href="index.php" class="<?= $currentPage == 'index.php' ? 'active' : '' ?>">
             <i class="fas fa-chart-bar"></i> Thống kê
         </a>
+        <?php endif; ?>
+        
         <a href="sales.php" class="<?= $currentPage == 'sales.php' ? 'active' : '' ?>">
             <i class="fas fa-shopping-cart"></i> Bán hàng
         </a>
         <a href="products.php" class="<?= $currentPage == 'products.php' ? 'active' : '' ?>">
             <i class="fas fa-box"></i> Sản phẩm
         </a>
+        
+        <?php if ($isAdmin): ?>
         <a href="categories.php" class="<?= $currentPage == 'categories.php' ? 'active' : '' ?>">
             <i class="fas fa-tags"></i> Danh mục
         </a>
+        <a href="promotions.php" class="<?= $currentPage == 'promotions.php' ? 'active' : '' ?>">
+            <i class="fas fa-percent"></i> Khuyến mãi
+        </a>
+        <?php endif; ?>
+        
         <a href="inventory.php" class="<?= $currentPage == 'inventory.php' ? 'active' : '' ?>">
             <i class="fas fa-warehouse"></i> Tồn kho
         </a>
+        
+        <?php if ($isAdmin): ?>
         <a href="imports.php" class="<?= $currentPage == 'imports.php' ? 'active' : '' ?>">
             <i class="fas fa-download"></i> Nhập hàng
         </a>
         <a href="accounts.php" class="<?= $currentPage == 'accounts.php' ? 'active' : '' ?>">
             <i class="fas fa-users"></i> Tài khoản
         </a>
+        <?php endif; ?>
+        
         <div style="position: absolute; bottom: 20px; width: 100%;">
             <a href="logout.php" style="color: #9ca3af;"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
         </div>
@@ -60,11 +94,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <!-- Topbar -->
         <div class="topbar">
             <div>
-                <span class="text-muted">Thứ Năm, 28 tháng 5, 2026</span>
+                <span id="realtime-clock" class="text-muted"></span>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <i class="fas fa-bell text-muted fs-5 position-relative">
-                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+                <i class="fas fa-bell text-muted fs-5 position-relative" title="Cảnh báo hàng hóa" style="cursor: pointer;">
+                    <?php if ($alert_count > 0): ?>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                        <?= $alert_count ?>
+                    </span>
+                    <?php endif; ?>
                 </i>
                 <div class="d-flex align-items-center gap-2 border rounded-pill px-2 py-1 bg-light cursor-pointer">
                     <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
