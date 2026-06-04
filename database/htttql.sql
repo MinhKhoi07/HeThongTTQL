@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th5 28, 2026 lúc 03:03 AM
+-- Thời gian đã tạo: Th6 04, 2026 lúc 02:40 AM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.2.12
 
@@ -45,6 +45,13 @@ CREATE TABLE `danh_muc` (
   `ten_danh_muc` varchar(100) NOT NULL,
   `trang_thai` tinyint(4) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_vietnamese_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `danh_muc`
+--
+
+INSERT INTO `danh_muc` (`id`, `ma_danh_muc`, `ten_danh_muc`, `trang_thai`) VALUES
+(1, 'R01', 'Rau cải', 1);
 
 -- --------------------------------------------------------
 
@@ -91,6 +98,13 @@ CREATE TABLE `nha_cung_cap` (
   `ghi_chu` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_vietnamese_ci;
 
+--
+-- Đang đổ dữ liệu cho bảng `nha_cung_cap`
+--
+
+INSERT INTO `nha_cung_cap` (`id`, `ma_ncc`, `ten_ncc`, `ma_so_thue`, `so_dien_thoai`, `dia_chi`, `email`, `ghi_chu`) VALUES
+(1, 'NCC01', 'Nhà cung cấp mẫu', NULL, NULL, NULL, NULL, NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -119,13 +133,21 @@ CREATE TABLE `san_pham` (
   `ma_vach` varchar(50) NOT NULL,
   `ma_sku` varchar(20) NOT NULL,
   `ten_san_pham` varchar(255) NOT NULL,
-  `hinh_anh` varchar(255) DEFAULT NULL,
   `don_vi_tinh` varchar(20) NOT NULL,
   `gia_nhap` decimal(15,2) NOT NULL,
   `gia_ban` decimal(15,2) NOT NULL,
   `ton_toi_thieu` int(11) DEFAULT 5,
-  `han_su_dung` date DEFAULT NULL
+  `han_su_dung` date DEFAULT NULL,
+  `hinh_anh` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_vietnamese_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `san_pham`
+--
+
+INSERT INTO `san_pham` (`id`, `id_danh_muc`, `ma_vach`, `ma_sku`, `ten_san_pham`, `don_vi_tinh`, `gia_nhap`, `gia_ban`, `ton_toi_thieu`, `han_su_dung`, `hinh_anh`) VALUES
+(1, 1, '0928646354', 'SP001', 'Xà lách', 'cây', 5000.00, 8000.00, 5, NULL, NULL),
+(2, 1, '6123761236152', 'sp918', 'bánh kem', 'cái', 20000.00, 30000.00, 5, NULL, 'assets/images/products/6a1900cbd2a84_1780023499.png');
 
 -- --------------------------------------------------------
 
@@ -141,6 +163,14 @@ CREATE TABLE `tai_khoan` (
   `vai_tro` varchar(20) NOT NULL,
   `trang_thai` tinyint(4) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_vietnamese_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `tai_khoan`
+--
+
+INSERT INTO `tai_khoan` (`id`, `ten_dang_nhap`, `mat_khau`, `ho_ten`, `vai_tro`, `trang_thai`) VALUES
+(1, 'admin', '$2y$10$4.JRoKYsvpXpJ69CEHzXeun9fonxskGyy0grvB0PrLmDFD1RZRhN2', 'Quản trị viên', 'Quản trị viên', 1),
+(2, 'nv1', '$2y$10$INJJGjrx08an7v2K6KKqCuQHFahLn.7v/m9zyLIC4tvX9PBYgudAK', 'Trần Thanh Thưởng', 'nhanvien', 1);
 
 -- --------------------------------------------------------
 
@@ -243,7 +273,7 @@ ALTER TABLE `chi_tiet_khuyen_mai`
 -- AUTO_INCREMENT cho bảng `danh_muc`
 --
 ALTER TABLE `danh_muc`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT cho bảng `kho_hang`
@@ -261,7 +291,7 @@ ALTER TABLE `khuyen_mai`
 -- AUTO_INCREMENT cho bảng `nha_cung_cap`
 --
 ALTER TABLE `nha_cung_cap`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT cho bảng `phieu_nhap`
@@ -273,13 +303,13 @@ ALTER TABLE `phieu_nhap`
 -- AUTO_INCREMENT cho bảng `san_pham`
 --
 ALTER TABLE `san_pham`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT cho bảng `tai_khoan`
 --
 ALTER TABLE `tai_khoan`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT cho bảng `ton_kho`

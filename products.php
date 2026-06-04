@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_product'])) {
     $don_vi_tinh = $_POST['don_vi_tinh'];
     $gia_nhap = $_POST['gia_nhap'];
     $gia_ban = $_POST['gia_ban'];
+    $so_luong = isset($_POST['so_luong']) ? (int)$_POST['so_luong'] : 0;
     
     // Xử lý upload hình ảnh
     $hinh_anh = '';
@@ -48,8 +49,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_product'])) {
         } else {
             $sql = "UPDATE san_pham SET id_danh_muc='$id_danh_muc', ma_vach='$ma_vach', ma_sku='$ma_sku', ten_san_pham='$ten_san_pham', don_vi_tinh='$don_vi_tinh', gia_nhap='$gia_nhap', gia_ban='$gia_ban' WHERE id=$id";
         }
+        $conn->query($sql);
+        
+        // Cập nhật số lượng
+        $check = $conn->query("SELECT id FROM ton_kho WHERE id_san_pham = $id");
+        if ($check->num_rows > 0) {
+            $conn->query("UPDATE ton_kho SET so_luong = $so_luong WHERE id_san_pham = $id");
+        } else {
+            $conn->query("INSERT INTO ton_kho (id_san_pham, id_kho_hang, so_luong) VALUES ($id, 1, $so_luong)");
+        }
+        header("Location: products.php");
+        exit();
     } else {
         $sql = "INSERT INTO san_pham (id_danh_muc, ma_vach, ma_sku, ten_san_pham, don_vi_tinh, gia_nhap, gia_ban, hinh_anh) VALUES ('$id_danh_muc', '$ma_vach', '$ma_sku', '$ten_san_pham', '$don_vi_tinh', '$gia_nhap', '$gia_ban', '$hinh_anh')";
+        $conn->query($sql);
+        $new_id = $conn->insert_id;
+        // Thêm số lượng đầu kỳ vào bảng tồn kho
+        $conn->query("INSERT INTO ton_kho (id_san_pham, id_kho_hang, so_luong) VALUES ($new_id, 1, $so_luong)");
+        header("Location: products.php");
+        exit();
     }
     $conn->query($sql);
     header("Location: products.php");
@@ -161,7 +179,7 @@ include 'includes/header.php';
                     </td>
                     <td>
                         <!-- Gọi modal sửa bằng JS (truyền đủ tham số) -->
-                        <button class="action-btn" onclick="editProduct(<?= $row['id'] ?>, <?= $row['id_danh_muc'] ?>, '<?= htmlspecialchars($row['ma_vach'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ma_sku'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ten_san_pham'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['don_vi_tinh'], ENT_QUOTES) ?>', <?= $row['gia_nhap'] ?>, <?= $row['gia_ban'] ?>, '<?= htmlspecialchars($row['hinh_anh'] ?? '', ENT_QUOTES) ?>')">
+                        <button class="action-btn" onclick="editProduct(<?= $row['id'] ?>, <?= $row['id_danh_muc'] ?>, '<?= htmlspecialchars($row['ma_vach'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ma_sku'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ten_san_pham'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['don_vi_tinh'], ENT_QUOTES) ?>', <?= $row['gia_nhap'] ?>, <?= $row['gia_ban'] ?>, <?= $row['ton_kho'] ?>, '<?= htmlspecialchars($row['hinh_anh'] ?? '', ENT_QUOTES) ?>')">
                             <i class="far fa-edit"></i>
                         </button>
                         <a href="products.php?delete=<?= $row['id'] ?>" class="action-btn text-decoration-none" onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này?');">
@@ -233,15 +251,19 @@ include 'includes/header.php';
             </div>
 
             <div class="row">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <label class="form-label">Đơn vị tính</label>
-                    <input type="text" name="don_vi_tinh" id="prod_dvt" class="form-control" required placeholder="Chai, Lốc, Thùng, Gói...">
+                    <input type="text" name="don_vi_tinh" id="prod_dvt" class="form-control" required placeholder="Chai, Lốc...">
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3" id="div_soluong">
+                    <label class="form-label">Số lượng đầu kỳ</label>
+                    <input type="number" name="so_luong" id="prod_soluong" class="form-control" min="0" value="0">
+                </div>
+                <div class="col-md-3 mb-3">
                     <label class="form-label">Giá nhập</label>
                     <input type="number" name="gia_nhap" id="prod_gianhap" class="form-control" required min="0" value="0">
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     <label class="form-label">Giá bán</label>
                     <input type="number" name="gia_ban" id="prod_giaban" class="form-control" required min="0" value="0">
                 </div>
@@ -280,11 +302,13 @@ function resetForm() {
     document.getElementById('prod_dvt').value = '';
     document.getElementById('prod_gianhap').value = '0';
     document.getElementById('prod_giaban').value = '0';
+    document.getElementById('prod_soluong').value = '0';
+    document.getElementById('div_soluong').style.display = 'block';
     document.getElementById('prod_hinh').value = '';
     document.getElementById('image_preview_container').style.display = 'none';
 }
 
-function editProduct(id, id_danh_muc, ma_vach, ma_sku, ten, dvt, gia_nhap, gia_ban, hinh_anh) {
+function editProduct(id, id_danh_muc, ma_vach, ma_sku, ten, dvt, gia_nhap, gia_ban, so_luong, hinh_anh) {
     document.getElementById('productModalLabel').innerText = 'Sửa sản phẩm';
     document.getElementById('prod_id').value = id;
     document.getElementById('prod_ten').value = ten;
@@ -294,6 +318,8 @@ function editProduct(id, id_danh_muc, ma_vach, ma_sku, ten, dvt, gia_nhap, gia_b
     document.getElementById('prod_dvt').value = dvt;
     document.getElementById('prod_gianhap').value = gia_nhap;
     document.getElementById('prod_giaban').value = gia_ban;
+    document.getElementById('prod_soluong').value = so_luong;
+    document.getElementById('div_soluong').style.display = 'block';
     
     if (hinh_anh) {
         document.getElementById('image_preview').src = hinh_anh;
