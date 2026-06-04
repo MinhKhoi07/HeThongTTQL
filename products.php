@@ -52,6 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_product'])) {
         $conn->query($sql);
         
         // Cập nhật số lượng
+        // Đảm bảo có kho hàng mặc định (id = 1)
+        $conn->query("INSERT IGNORE INTO kho_hang (id, ma_vi_tri, ten_vi_tri) VALUES (1, 'KHO_MAC_DINH', 'Kho Chính')");
+        
         $check = $conn->query("SELECT id FROM ton_kho WHERE id_san_pham = $id");
         if ($check->num_rows > 0) {
             $conn->query("UPDATE ton_kho SET so_luong = $so_luong WHERE id_san_pham = $id");
@@ -64,6 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_product'])) {
         $sql = "INSERT INTO san_pham (id_danh_muc, ma_vach, ma_sku, ten_san_pham, don_vi_tinh, gia_nhap, gia_ban, hinh_anh) VALUES ('$id_danh_muc', '$ma_vach', '$ma_sku', '$ten_san_pham', '$don_vi_tinh', '$gia_nhap', '$gia_ban', '$hinh_anh')";
         $conn->query($sql);
         $new_id = $conn->insert_id;
+        
+        // Đảm bảo có kho hàng mặc định (id = 1)
+        $conn->query("INSERT IGNORE INTO kho_hang (id, ma_vi_tri, ten_vi_tri) VALUES (1, 'KHO_MAC_DINH', 'Kho Chính')");
+        
         // Thêm số lượng đầu kỳ vào bảng tồn kho
         $conn->query("INSERT INTO ton_kho (id_san_pham, id_kho_hang, so_luong) VALUES ($new_id, 1, $so_luong)");
         header("Location: products.php");
