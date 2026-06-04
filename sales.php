@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['checkout'])) {
 }
 
 // Lấy danh sách sản phẩm để đưa vào POS
-$sql = "SELECT id, ten_san_pham, gia_ban, ma_vach, ma_sku FROM san_pham ORDER BY id DESC";
+$sql = "SELECT id, ten_san_pham, gia_ban, ma_vach, ma_sku, hinh_anh FROM san_pham ORDER BY id DESC";
 $result = $conn->query($sql);
 $products = [];
 while ($row = $result->fetch_assoc()) {
@@ -50,7 +50,11 @@ include 'includes/header.php';
             <div class="col-md-6 col-lg-4 product-item" data-name="<?= strtolower($p['ten_san_pham']) ?>" data-sku="<?= strtolower($p['ma_sku']) ?>" data-barcode="<?= strtolower($p['ma_vach']) ?>">
                 <div class="card h-100 product-card shadow-sm border-0" onclick='addToCart(<?= json_encode($p) ?>)' style="cursor: pointer; transition: transform 0.2s;">
                     <div class="card-body text-center d-flex flex-column justify-content-center">
-                        <i class="fas fa-box fa-3x text-custom mb-3 opacity-50"></i>
+                        <?php if (!empty($p['hinh_anh'])): ?>
+                            <img src="<?= htmlspecialchars($p['hinh_anh']) ?>" alt="<?= htmlspecialchars($p['ten_san_pham']) ?>" class="img-fluid mb-3 mx-auto" style="max-height: 100px; object-fit: contain;">
+                        <?php else: ?>
+                            <i class="fas fa-box fa-3x text-custom mb-3 opacity-50"></i>
+                        <?php endif; ?>
                         <h6 class="fw-bold text-truncate" title="<?= $p['ten_san_pham'] ?>"><?= $p['ten_san_pham'] ?></h6>
                         <small class="text-muted mb-2 d-block"><?= $p['ma_sku'] ?> | <?= $p['ma_vach'] ?></small>
                         <h5 class="text-danger fw-bold mb-0"><?= number_format($p['gia_ban'], 0, ',', '.') ?> đ</h5>
