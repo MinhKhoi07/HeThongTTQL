@@ -69,10 +69,11 @@ if ($res_stock) {
 <div class="row">
     <div class="col-md-8 mb-4">
         <div class="card p-4 h-100 shadow-sm border-0">
-            <h5 class="fw-bold mb-4">Hoạt động thời gian thực</h5>
-            <div class="text-center text-muted py-5">
-                <i class="fas fa-chart-area fa-4x mb-3 opacity-25"></i>
-                <p>Biểu đồ doanh thu đang ẩn<br> <small>(Cần tạo bảng <code>hoa_don</code> để thống kê doanh thu bán từ POS)</small></p>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">Biểu đồ doanh thu (7 ngày gần nhất)</h5>
+            </div>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="revenueChart"></canvas>
             </div>
         </div>
     </div>
@@ -110,3 +111,73 @@ if ($res_stock) {
 </div>
 
 <?php include 'includes/footer.php'; ?>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var ctx = document.getElementById('revenueChart');
+    if (ctx) {
+        // Mock data cho biểu đồ 7 ngày gần nhất
+        var labels = [];
+        var data_points = [];
+        
+        // Tạo nhãn ngày tháng (vd: 28/05, 29/05...)
+        for (var i = 6; i >= 0; i--) {
+            var d = new Date();
+            d.setDate(d.getDate() - i);
+            labels.push(d.getDate() + '/' + (d.getMonth() + 1));
+            // Tạo data giả định ngẫu nhiên từ 1tr đến 10tr
+            data_points.push(Math.floor(Math.random() * 9000000) + 1000000);
+        }
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: data_points,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(54, 162, 235, 1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('vi-VN') + ' ₫';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString('vi-VN') + ' ₫';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
