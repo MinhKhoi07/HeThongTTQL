@@ -71,7 +71,7 @@ if ($result_exp) $alert_count += $result_exp->fetch_assoc()['total'];
             <i class="fas fa-tags"></i> Danh mục
         </a>
         <a href="promotions.php" class="<?= $currentPage == 'promotions.php' ? 'active' : '' ?>">
-            <i class="fas fa-percent"></i> Khuyến mãi
+            <i class="fas fa-percentage"></i> Khuyến mãi
         </a>
         <?php endif; ?>
         
@@ -82,9 +82,6 @@ if ($result_exp) $alert_count += $result_exp->fetch_assoc()['total'];
         <?php if ($isAdmin): ?>
         <a href="imports.php" class="<?= $currentPage == 'imports.php' ? 'active' : '' ?>">
             <i class="fas fa-download"></i> Nhập hàng
-        </a>
-        <a href="promotions.php" class="<?= $currentPage == 'promotions.php' ? 'active' : '' ?>">
-            <i class="fas fa-percentage"></i> Khuyến mãi
         </a>
         <a href="accounts.php" class="<?= $currentPage == 'accounts.php' ? 'active' : '' ?>">
             <i class="fas fa-users"></i> Tài khoản
