@@ -157,7 +157,10 @@ include 'includes/header.php';
             <?php foreach($products as $p): ?>
             <div class="col-md-6 col-lg-4 product-item" data-name="<?= strtolower($p['ten_san_pham']) ?>" data-sku="<?= strtolower($p['ma_sku']) ?>" data-barcode="<?= strtolower($p['ma_vach']) ?>">
                 <?php $is_out_of_stock = $p['ton_kho'] <= 0; ?>
-                <div class="card h-100 product-card shadow-sm border-0 <?= $is_out_of_stock ? 'opacity-50' : '' ?>" <?= !$is_out_of_stock ? "onclick='addToCart(".htmlspecialchars(json_encode($p), ENT_QUOTES).")'" : "" ?> style="cursor: <?= $is_out_of_stock ? 'not-allowed' : 'pointer' ?>; transition: transform 0.2s;">
+                <div class="card h-100 product-card shadow-sm border-0 <?= $is_out_of_stock ? 'opacity-50' : '' ?>" 
+                     data-product='<?= json_encode($p) ?>'
+                     <?= !$is_out_of_stock ? "onclick=\"addToCartFromElement(this)\"" : "" ?> 
+                     style="cursor: <?= $is_out_of_stock ? 'not-allowed' : 'pointer' ?>; transition: transform 0.2s;">
                     
                     <?php if ($p['discount'] > 0): ?>
                         <div class="position-absolute top-0 end-0 bg-danger text-white px-2 py-1 m-2 rounded shadow-sm fw-bold" style="font-size: 0.8rem; z-index: 2;">
@@ -274,6 +277,11 @@ let cart = [];
 
 function formatMoney(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " đ";
+}
+
+function addToCartFromElement(element) {
+    const product = JSON.parse(element.getAttribute('data-product'));
+    addToCart(product);
 }
 
 function addToCart(product) {
