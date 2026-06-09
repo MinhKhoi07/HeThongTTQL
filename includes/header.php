@@ -47,6 +47,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <a href="imports.php" class="<?= $currentPage == 'imports.php' ? 'active' : '' ?>">
             <i class="fas fa-download"></i> Nhập hàng
         </a>
+        <a href="promotions.php" class="<?= $currentPage == 'promotions.php' ? 'active' : '' ?>">
+            <i class="fas fa-percentage"></i> Khuyến mãi
+        </a>
         <a href="accounts.php" class="<?= $currentPage == 'accounts.php' ? 'active' : '' ?>">
             <i class="fas fa-users"></i> Tài khoản
         </a>
