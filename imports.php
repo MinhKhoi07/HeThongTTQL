@@ -73,9 +73,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             // Đảm bảo kho mặc định tồn tại
             $conn->query("INSERT IGNORE INTO kho_hang (id, ma_vi_tri, ten_vi_tri) VALUES (1, 'KHO_MAC_DINH', 'Kho Chính')");
 
+            // Merge các dòng trùng sản phẩm trước khi lưu
+            $merged = [];
+            foreach ($items as $it) {
+                if (isset($merged[$it['id']])) {
+                    $merged[$it['id']]['sl'] += $it['sl'];
+                    $merged[$it['id']]['tt'] += $it['tt'];
+                } else {
+                    $merged[$it['id']] = $it;
+                }
+            }
+            $items = array_values($merged);
+
             // Thêm chi tiết & cập nhật tồn kho
             $stmt_ct = $conn->prepare("INSERT INTO chi_tiet_phieu_nhap (id_phieu_nhap, id_san_pham, so_luong, gia_nhap, thanh_tien) VALUES (?, ?, ?, ?, ?)");
             foreach ($items as $it) {
+                // i=id_phieu, i=id_sp, i=so_luong, d=gia_nhap, d=thanh_tien
                 $stmt_ct->bind_param("iiidd", $id_phieu, $it['id'], $it['sl'], $it['gia'], $it['tt']);
                 $stmt_ct->execute();
 
@@ -224,7 +237,8 @@ include 'includes/header.php';
                     <td class="text-danger fw-bold"><?= number_format($pn['tong_tien'], 0, ',', '.') ?> đ</td>
                     <td><?= htmlspecialchars($pn['ghi_chu']) ?></td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary" onclick='editImport(<?= json_encode($pn) ?>)'>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick='editImport(<?= htmlspecialchars(json_encode($pn, JSON_HEX_QUOT | JSON_HEX_APOS), ENT_QUOTES) ?>)'>
                             <i class="fas fa-edit"></i>
                         </button>
                         <form method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc xoá phiếu này? Tồn kho sẽ được hoàn lại.');">
@@ -246,7 +260,7 @@ include 'includes/header.php';
 <!-- Modal Thêm / Sửa Phiếu Nhập -->
 <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <form class="modal-content" method="POST" id="importForm">
+        <form class="modal-content" method="POST" id="importForm" onsubmit="return validateForm()">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold" id="modalTitle">Thêm phiếu nhập mới</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -385,6 +399,53 @@ function updateTotal() {
         total += sl * gia;
     });
     document.getElementById('modal_tong_tien').textContent = formatMoney(total);
+}
+
+function validateForm() {
+    // Kiểm tra có ít nhất 1 dòng sản phẩm hợp lệ
+    const rows = document.querySelectorAll('#ct_tbody tr');
+    if (rows.length === 0) {
+        alert('Vui lòng thêm ít nhất 1 sản phẩm vào phiếu nhập!');
+        return false;
+    }
+    let valid = true;
+    rows.forEach((tr, idx) => {
+        const spSel = tr.querySelector('.sp-select');
+        const slInput = tr.querySelector('.sl-input');
+        const giaInput = tr.querySelector('.gia-input');
+
+        if (!spSel.value) {
+            spSel.classList.add('is-invalid');
+            valid = false;
+        } else {
+            spSel.classList.remove('is-invalid');
+        }
+        if (!slInput.value || parseInt(slInput.value) < 1) {
+            slInput.classList.add('is-invalid');
+            valid = false;
+        } else {
+            slInput.classList.remove('is-invalid');
+        }
+        if (!giaInput.value || parseFloat(giaInput.value) < 0) {
+            giaInput.classList.add('is-invalid');
+            valid = false;
+        } else {
+            giaInput.classList.remove('is-invalid');
+        }
+    });
+    if (!valid) {
+        alert('Vui lòng điền đầy đủ thông tin sản phẩm (chọn sản phẩm, số lượng ≥ 1)!');
+        return false;
+    }
+    // Kiểm tra trùng sản phẩm
+    const spIds = Array.from(document.querySelectorAll('#ct_tbody .sp-select')).map(s => s.value).filter(v => v);
+    const unique = new Set(spIds);
+    if (unique.size < spIds.length) {
+        if (!confirm('Có sản phẩm bị chọn trùng. Hệ thống sẽ tự gộp số lượng lại. Bạn có muốn tiếp tục?')) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function resetForm() {
