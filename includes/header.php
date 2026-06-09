@@ -83,6 +83,9 @@ if ($result_exp) $alert_count += $result_exp->fetch_assoc()['total'];
         <a href="imports.php" class="<?= $currentPage == 'imports.php' ? 'active' : '' ?>">
             <i class="fas fa-download"></i> Nhập hàng
         </a>
+        <a href="suppliers.php" class="<?= $currentPage == 'suppliers.php' ? 'active' : '' ?>">
+            <i class="fas fa-truck"></i> Nhà cung cấp
+        </a>
         <a href="accounts.php" class="<?= $currentPage == 'accounts.php' ? 'active' : '' ?>">
             <i class="fas fa-users"></i> Tài khoản
         </a>
