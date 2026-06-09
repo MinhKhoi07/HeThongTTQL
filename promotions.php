@@ -150,6 +150,9 @@ include 'includes/header.php';
                     <td class="text-danger fw-bold"><?= $row['muc_giam'] ?>%</td>
                     <td><?= $status_badge ?></td>
                     <td>
+                        <button class="action-btn" onclick="editPromotion(<?= $row['id'] ?>, '<?= htmlspecialchars($row['ma_km'], ENT_QUOTES) ?>', '<?= htmlspecialchars($row['ten_chuong_trinh'], ENT_QUOTES) ?>', '<?= $row['ngay_bat_dau'] ?>', '<?= $row['ngay_ket_thuc'] ?>', <?= $row['muc_giam'] ?>, '<?= $row['loai_ap_dung'] ?>', '<?= $row['gia_tri_ap_dung'] ?>')">
+                            <i class="far fa-edit"></i>
+                        </button>
                         <a href="promotions.php?delete=<?= $row['id'] ?>" class="action-btn text-decoration-none" onclick="return confirm('Bạn có chắc muốn xóa khuyến mãi này?');">
                             <i class="far fa-trash-alt"></i>
                         </a>
@@ -252,6 +255,32 @@ function resetForm() {
     document.getElementById('km_giam').value = '';
     document.getElementById('km_loai').value = 'tat_ca';
     toggleScope();
+}
+
+function editPromotion(id, ma_km, ten, ngay_bd, ngay_kt, muc_giam, loai, gia_tri) {
+    document.getElementById('promotionModalLabel').innerText = 'Sửa khuyến mãi';
+    document.getElementById('km_id').value = id;
+    document.getElementById('km_ma').value = ma_km;
+    document.getElementById('km_ten').value = ten;
+    document.getElementById('km_batdau').value = ngay_bd.replace(' ', 'T');
+    document.getElementById('km_ketthuc').value = ngay_kt.replace(' ', 'T');
+    document.getElementById('km_giam').value = muc_giam;
+    document.getElementById('km_loai').value = loai;
+    toggleScope();
+    
+    // Xử lý chọn giá trị tương ứng
+    if (loai === 'danh_muc') {
+        document.querySelector('select[name="id_danh_muc"]').value = gia_tri;
+    } else if (loai === 'san_pham') {
+        const ids = gia_tri.split(',');
+        const select = document.querySelector('select[name="id_san_pham[]"]');
+        for (let opt of select.options) {
+            opt.selected = ids.includes(opt.value);
+        }
+    }
+    
+    var myModal = new bootstrap.Modal(document.getElementById('promotionModal'));
+    myModal.show();
 }
 
 function toggleScope() {
