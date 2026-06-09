@@ -104,6 +104,28 @@ while ($row = $result->fetch_assoc()) {
 }
 $products_json = json_encode($products);
 
+// Tạo bảng khách hàng nếu chưa có
+$conn->query("CREATE TABLE IF NOT EXISTS `khach_hang` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ma_khach_hang` varchar(20) DEFAULT NULL,
+  `ten_khach_hang` varchar(100) NOT NULL,
+  `so_dien_thoai` varchar(15) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `dia_chi` varchar(255) DEFAULT NULL,
+  `ngay_sinh` date DEFAULT NULL,
+  `diem_tich_luy` int(11) DEFAULT 0,
+  `ngay_tao` datetime DEFAULT current_timestamp(),
+  `ghi_chu` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ma_khach_hang` (`ma_khach_hang`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_vietnamese_ci");
+
+// Thêm khách hàng mặc định nếu chưa có
+$check_kh = $conn->query("SELECT COUNT(*) as c FROM khach_hang")->fetch_assoc();
+if ($check_kh['c'] == 0) {
+    $conn->query("INSERT INTO khach_hang (ma_khach_hang, ten_khach_hang, diem_tich_luy) VALUES ('KH001', 'Khách lẻ', 0)");
+}
+
 // Lấy danh sách khách hàng
 $customers = $conn->query("SELECT id, ten_khach_hang, so_dien_thoai FROM khach_hang")->fetch_all(MYSQLI_ASSOC);
 
