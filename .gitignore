@@ -1,0 +1,11 @@
+# Composer dependencies
+vendor/
+
+# Hóa đơn PDF đã xuất (dữ liệu cá nhân, không cần track)
+kho_hoadon/*.pdf
+kho_hoadon/*.html
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp

@@ -7,6 +7,24 @@ $total_products = $conn->query("SELECT COUNT(*) AS c FROM san_pham")->fetch_asso
 $total_imports = $conn->query("SELECT COUNT(*) AS c FROM phieu_nhap")->fetch_assoc()['c'] ?? 0;
 $sum_imports = $conn->query("SELECT SUM(tong_tien) AS sum FROM phieu_nhap")->fetch_assoc()['sum'] ?? 0;
 
+// Lấy doanh thu thực 7 ngày gần nhất từ bảng hoa_don
+$revenue_labels = [];
+$revenue_data = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $label = date('d/m', strtotime("-$i days"));
+    $revenue_labels[] = $label;
+
+    $res_rev = $conn->query("
+        SELECT COALESCE(SUM(tong_tien), 0) AS doanh_thu 
+        FROM hoa_don 
+        WHERE DATE(created_at) = '$date'
+    ");
+    $revenue_data[] = $res_rev ? (float)$res_rev->fetch_assoc()['doanh_thu'] : 0;
+}
+$revenue_labels_json = json_encode($revenue_labels);
+$revenue_data_json   = json_encode($revenue_data);
+
 // Lấy danh sách sản phẩm có nhiều hàng trong kho nhất
 $top_stock = [];
 $res_stock = $conn->query("
@@ -116,18 +134,9 @@ if ($res_stock) {
 document.addEventListener("DOMContentLoaded", function() {
     var ctx = document.getElementById('revenueChart');
     if (ctx) {
-        // Mock data cho biểu đồ 7 ngày gần nhất
-        var labels = [];
-        var data_points = [];
-        
-        // Tạo nhãn ngày tháng (vd: 28/05, 29/05...)
-        for (var i = 6; i >= 0; i--) {
-            var d = new Date();
-            d.setDate(d.getDate() - i);
-            labels.push(d.getDate() + '/' + (d.getMonth() + 1));
-            // Tạo data giả định ngẫu nhiên từ 1tr đến 10tr
-            data_points.push(Math.floor(Math.random() * 9000000) + 1000000);
-        }
+        // Dữ liệu doanh thu thực từ DB (7 ngày gần nhất)
+        var labels = <?= $revenue_labels_json ?>;
+        var data_points = <?= $revenue_data_json ?>;
 
         new Chart(ctx, {
             type: 'line',
