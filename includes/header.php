@@ -62,6 +62,11 @@ if ($result_exp) $alert_count += $result_exp->fetch_assoc()['total'];
         <a href="sales.php" class="<?= $currentPage == 'sales.php' ? 'active' : '' ?>">
             <i class="fas fa-shopping-cart"></i> Bán hàng
         </a>
+        <?php if ($isAdmin): ?>
+        <a href="orders.php" class="<?= $currentPage == 'orders.php' ? 'active' : '' ?>">
+            <i class="fas fa-receipt"></i> Đơn hàng
+        </a>
+        <?php endif; ?>
         <a href="products.php" class="<?= $currentPage == 'products.php' ? 'active' : '' ?>">
             <i class="fas fa-box"></i> Sản phẩm
         </a>
