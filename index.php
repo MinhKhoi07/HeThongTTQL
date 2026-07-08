@@ -3,33 +3,45 @@ include 'includes/header.php';
 include 'connect.php';
 
 // -------------------------------------------------------
+// Bộ lọc tháng / năm
+// -------------------------------------------------------
+$sel_month = (int)($_GET['month'] ?? date('m'));
+$sel_year  = (int)($_GET['year']  ?? date('Y'));
+
+// Giới hạn hợp lệ
+if ($sel_month < 1 || $sel_month > 12) $sel_month = (int)date('m');
+if ($sel_year  < 2000 || $sel_year > (int)date('Y') + 1) $sel_year = (int)date('Y');
+
+$month_start = sprintf('%04d-%02d-01', $sel_year, $sel_month);
+$month_end   = date('Y-m-t', strtotime($month_start));   // ngày cuối tháng
+$today       = date('Y-m-d');
+
+// Nhãn tháng đang xem
+$month_label = date('m/Y', strtotime($month_start));
+$is_current  = ($sel_month == (int)date('m') && $sel_year == (int)date('Y'));
+
+// -------------------------------------------------------
 // Tổng quan
 // -------------------------------------------------------
 $total_products = $conn->query("SELECT COUNT(*) AS c FROM san_pham")->fetch_assoc()['c'] ?? 0;
 $total_imports  = $conn->query("SELECT COUNT(*) AS c FROM phieu_nhap")->fetch_assoc()['c'] ?? 0;
 $sum_imports    = (float)($conn->query("SELECT SUM(tong_tien) AS s FROM phieu_nhap")->fetch_assoc()['s'] ?? 0);
 
-// -------------------------------------------------------
-// Doanh thu & Lợi nhuận tháng này
-// -------------------------------------------------------
-$month_start = date('Y-m-01');
-$today       = date('Y-m-d');
-
-// Doanh thu tháng này (từ hóa đơn)
+// Doanh thu tháng được chọn (từ hóa đơn)
 $doanh_thu_thang = (float)$conn->query("
     SELECT COALESCE(SUM(tong_tien),0) AS s 
     FROM hoa_don 
-    WHERE DATE(created_at) >= '$month_start' AND DATE(created_at) <= '$today'
+    WHERE DATE(created_at) >= '$month_start' AND DATE(created_at) <= '$month_end'
 ")->fetch_assoc()['s'];
 
-// Giá vốn hàng đã bán tháng này
+// Giá vốn hàng đã bán tháng được chọn
 // = SUM(số lượng bán × giá_nhap của sản phẩm đó)
 $gia_von_thang = (float)$conn->query("
     SELECT COALESCE(SUM(ct.so_luong * sp.gia_nhap), 0) AS s
     FROM chi_tiet_hoa_don ct
     JOIN hoa_don hd ON ct.id_hoa_don = hd.id
     JOIN san_pham sp ON ct.id_san_pham = sp.id
-    WHERE DATE(hd.created_at) >= '$month_start' AND DATE(hd.created_at) <= '$today'
+    WHERE DATE(hd.created_at) >= '$month_start' AND DATE(hd.created_at) <= '$month_end'
 ")->fetch_assoc()['s'];
 
 $loi_nhuan_thang = $doanh_thu_thang - $gia_von_thang;
@@ -37,9 +49,10 @@ $ty_le_ln = $doanh_thu_thang > 0
     ? round($loi_nhuan_thang / $doanh_thu_thang * 100, 1)
     : 0;
 
-// Doanh thu tháng trước (để so sánh)
-$prev_start = date('Y-m-01', strtotime('first day of last month'));
-$prev_end   = date('Y-m-t',  strtotime('first day of last month'));
+// Tháng trước (so sánh) — tính từ tháng được chọn
+$prev_ts    = mktime(0, 0, 0, $sel_month - 1, 1, $sel_year);
+$prev_start = date('Y-m-01', $prev_ts);
+$prev_end   = date('Y-m-t',  $prev_ts);
 $doanh_thu_prev = (float)$conn->query("
     SELECT COALESCE(SUM(tong_tien),0) AS s 
     FROM hoa_don 
@@ -64,17 +77,20 @@ $dt_change = pct_change($doanh_thu_thang, $doanh_thu_prev);
 $ln_change = pct_change($loi_nhuan_thang, $loi_nhuan_prev);
 
 // -------------------------------------------------------
-// Dữ liệu biểu đồ 7 ngày: Doanh thu + Giá vốn + Lợi nhuận
+// Dữ liệu biểu đồ: từng ngày trong tháng được chọn
 // -------------------------------------------------------
 $chart_labels   = [];
 $chart_revenue  = [];
 $chart_cost     = [];
 $chart_profit   = [];
 
-for ($i = 6; $i >= 0; $i--) {
-    $date  = date('Y-m-d', strtotime("-$i days"));
-    $label = date('d/m',   strtotime("-$i days"));
-    $chart_labels[] = $label;
+$days_in_month = (int)date('t', strtotime($month_start));
+// Nếu là tháng hiện tại, chỉ hiện đến hôm nay
+$last_day = ($is_current) ? (int)date('d') : $days_in_month;
+
+for ($d = 1; $d <= $last_day; $d++) {
+    $date  = sprintf('%04d-%02d-%02d', $sel_year, $sel_month, $d);
+    $chart_labels[] = $d . '/' . $sel_month;
 
     $rev = (float)$conn->query("
         SELECT COALESCE(SUM(tong_tien),0) AS s FROM hoa_don WHERE DATE(created_at)='$date'
@@ -140,7 +156,25 @@ for ($m = 11; $m >= 0; $m--) {
         <h3 class="fw-bold mb-0">Thống kê hệ thống</h3>
         <p class="text-muted mb-0">Tổng quan doanh thu, lợi nhuận và hàng hóa</p>
     </div>
-    <span class="badge bg-light text-muted border">Tháng <?= date('m/Y') ?></span>
+    <!-- Bộ chọn tháng / năm -->
+    <form method="GET" class="d-flex align-items-center gap-2">
+        <label class="text-muted small mb-0">Tháng:</label>
+        <select name="month" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+            <?php for ($m = 1; $m <= 12; $m++): ?>
+            <option value="<?= $m ?>" <?= $m == $sel_month ? 'selected' : '' ?>>
+                Tháng <?= sprintf('%02d', $m) ?>
+            </option>
+            <?php endfor; ?>
+        </select>
+        <select name="year" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+            <?php for ($y = (int)date('Y'); $y >= 2023; $y--): ?>
+            <option value="<?= $y ?>" <?= $y == $sel_year ? 'selected' : '' ?>><?= $y ?></option>
+            <?php endfor; ?>
+        </select>
+        <span class="badge bg-<?= $is_current ? 'success' : 'secondary' ?> px-3 py-2">
+            <?= $is_current ? 'Tháng này' : $month_label ?>
+        </span>
+    </form>
 </div>
 
 <!-- ===================== WIDGET HÀNG 1: TỔNG QUAN ===================== -->
@@ -198,7 +232,7 @@ for ($m = 11; $m >= 0; $m--) {
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="card p-4 shadow-sm border-0">
-            <h6 class="fw-bold text-muted mb-3">Phân tích tháng này</h6>
+            <h6 class="fw-bold text-muted mb-3">Phân tích tháng <?= $month_label ?></h6>
             <?php
             $items_profit = [
                 ['label' => 'Doanh thu',  'val' => $doanh_thu_thang, 'color' => 'primary',  'icon' => 'fa-arrow-up'],
@@ -229,7 +263,7 @@ for ($m = 11; $m >= 0; $m--) {
     </div>
     <div class="col-md-8">
         <div class="card p-4 shadow-sm border-0">
-            <h6 class="fw-bold text-muted mb-3">Doanh thu & Lợi nhuận 7 ngày gần nhất</h6>
+            <h6 class="fw-bold text-muted mb-3">Doanh thu & Lợi nhuận theo ngày — Tháng <?= $month_label ?></h6>
             <div style="position:relative;height:180px">
                 <canvas id="weeklyChart"></canvas>
             </div>
